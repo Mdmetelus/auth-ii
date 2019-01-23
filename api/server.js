@@ -15,4 +15,13 @@ server.get ('/', (req, res) => {
   res.send (`API working.\n Sanity Check\n Test Route!`);
 });
 
+//Endpoints
+server.post ('/api/register', (req, res) => {
+  const blank = req.body;
+
+  const hash = bcrypt.hashSync (userInfo.password, 16);
+
+  blank.password = hash;
+});
+
 module.exports = server;
