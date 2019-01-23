@@ -52,4 +52,55 @@ function generateUserToken(user) {
   return jwt.sign(payload,secret, options);
 }
 
+server.post('/api/login', (req,res) => {
+  const creds = req.body;
+  console.log(creds);
+
+  db('users').where({ username: creds.username }).first()
+    .then(user => {
+      if (user && bcrypt.compareSync(creds.password, user.password)) {
+
+        const token = generateUserToken(user);
+        res.status(200).json({message: `Welcome ${user.name} !`, token: token});
+      } else {
+        res.status(401).json({message:`You are not authorized to login!`})
+      }
+    })
+    .catch(err => {
+      res.status(500).json({message: `You may not login!`})
+    });
+});
+
+function protected(req, res, next) {
+  const token = req.headers.authorization;
+
+  if (token) {
+    jwt.verify(token, process.env.JWT_SECRET, (err, decodedToken) => {
+      if (err) {
+        res.status(401).json({message: `Invalid Token`});
+      } else {
+        req.decodedToken = decodedToken;
+        next();
+      }
+    });
+  } else {
+    res.status(401).json({message: `You have not provided a Token.`})
+  }
+}
+
+
+server.get('/api/users', protected, (req, res) => {
+  if(protected) {
+    db('users').then(allUsers => {
+      res.status(200).json(allUsers);
+    }).catch( err => { res.status(500).json({error:`failed to return Users!`})
+  })
+  } else {
+    res.status(401).json({message:`Access Denied!`});
+  }
+
+});
+
+
+
 module.exports = server;
